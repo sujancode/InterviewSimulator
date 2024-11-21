@@ -10,6 +10,7 @@ import { MessageList } from './components/MessageList';
 import { StatusIndicators } from './components/StatusIndicators';
 import { AudioVisualizer } from './components/AudioVisualizer';
 import { useVoiceStore } from './store/voiceStore';
+import { AzureOpenAIService } from './services/AzureOpenAIService';
 
 export default function VoiceAgent() {
   const {
@@ -27,6 +28,7 @@ export default function VoiceAgent() {
 
   const { startListening, stopListening } = useVoiceRecognition();
   const [tts, setTts] = React.useState<TextToSpeechService | null>(null);
+  const [aiService] = React.useState(new AzureOpenAIService());
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -56,7 +58,7 @@ export default function VoiceAgent() {
     setHasStarted(true);
     startListening();
     addMessage({ 
-      text: "Voice interaction started. How can I help you?", 
+      text: "Voice interaction started. How can I help you with your interview preparation?", 
       type: 'agent' 
     });
   }, [startListening, setHasStarted, addMessage]);
@@ -75,10 +77,10 @@ export default function VoiceAgent() {
 
     addMessage({ text: transcript, type: 'user' });
 
-    const aiResponse = `I heard you say: ${transcript}`;
+    setIsSpeaking(true);
+    const aiResponse = await aiService.getResponse(transcript);
     addMessage({ text: aiResponse, type: 'agent' });
 
-    setIsSpeaking(true);
     if (tts) {
       await tts.speak(aiResponse);
     }
@@ -87,14 +89,14 @@ export default function VoiceAgent() {
     if (hasStarted) {
       startListening();
     }
-  }, [tts, startListening, addMessage, setIsSpeaking, hasStarted]);
+  }, [tts, startListening, addMessage, setIsSpeaking, hasStarted, aiService]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 p-4">
       <div className="max-w-md mx-auto bg-white/10 backdrop-blur-lg rounded-lg shadow-lg p-6">
         <div className="mb-4">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-white">Voice Agent</h1>
+            <h1 className="text-2xl font-bold text-white">Interview Assistant</h1>
             <div className="flex items-center gap-2">
               <button
                 onClick={hasStarted ? handleStop : handleStart}
